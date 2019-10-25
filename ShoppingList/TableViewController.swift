@@ -62,8 +62,54 @@ class TableViewController: UITableViewController {
         tableView.reloadData()
     }
     
+    func showAlertForItem(_ item: ShoppingItem?) {
+        let alert = UIAlertController(title: "Produto", message: "Entre com as informações do produto abaixo", preferredStyle: .alert)
+        
+        alert.addTextField { (textField) in
+            textField.placeholder = "Nome"
+            textField.text = item?.name
+        }
+        alert.addTextField { (textField) in
+            textField.placeholder = "Quantidade"
+            textField.text = "\(item?.quantity ?? 1)"
+            textField.keyboardType = .numberPad
+        }
+        
+        let cancelAction = UIAlertAction(title: "Cancelar", style: .cancel, handler: nil)
+        alert.addAction(cancelAction)
+        
+        let okAction = UIAlertAction(title: "OK", style: .default) { (_) in
+            
+            guard let name = alert.textFields?.first?.text,
+                let quantity = alert.textFields?.last?.text else {return}
+            
+            let data: [String: Any] = [
+                "name": name,
+                "quantity": Int(quantity) ?? 0
+            ]
+            
+            if let item = item {
+                //Edição
+                self.firestore.collection(self.collection).document(item.id).updateData(data)
+            } else {
+                //Criação
+                self.firestore.collection(self.collection).addDocument(data: data) { (error) in
+                    if error != nil {
+                        print("Deu erro ao adicionar o documento")
+                    } else {
+                        print("Documento adicionado com sucesso!")
+                    }
+                }
+            }
+        }
+        alert.addAction(okAction)
+        
+        present(alert, animated: true, completion: nil)
+    }
+    
     // MARK: - IBActions
     @IBAction func addItem(_ sender: Any) {
+        showAlertForItem(nil)
     }
     
     // MARK: - Table view data source
@@ -83,5 +129,18 @@ class TableViewController: UITableViewController {
         cell.detailTextLabel?.text = "\(shoppingItem.quantity)"
         
         return cell
+    }
+    
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let shoppingItem = shoppingList[indexPath.row]
+        showAlertForItem(shoppingItem)
+    }
+    
+    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+        
+        if editingStyle == .delete {
+            let shoppingItem = shoppingList[indexPath.row]
+            firestore.collection(collection).document(shoppingItem.id).delete()
+        }
     }
 }
