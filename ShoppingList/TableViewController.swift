@@ -21,11 +21,24 @@ class TableViewController: UITableViewController {
     // MARK: - Super Methods
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Logout", style: .plain, target: self, action: #selector(logout))
+        
         title = Auth.auth().currentUser?.displayName ?? "Lista de compras"
         loadItems()
     }
     
+    
     //MARK: - Methods
+    @objc func logout() {
+        
+        try? Auth.auth().signOut()
+        
+        guard let vc = storyboard?.instantiateViewController(withIdentifier: ViewController.name) else {return}
+        //navigationController?.show(vc, sender: nil)
+        navigationController?.viewControllers = [vc]
+    }
+    
     func loadItems() {
         firestoreListener = firestore
             .collection(collection)
